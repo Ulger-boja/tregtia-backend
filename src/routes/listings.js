@@ -93,7 +93,13 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 });
 
 // POST /api/listings
-router.post('/', authenticate, uploadImages, async (req, res, next) => {
+// Support both multipart (file upload) and JSON (scraper with image URLs)
+const handleUpload = (req, res, next) => {
+  const ct = req.headers['content-type'] || '';
+  if (ct.includes('application/json')) return next(); // skip multer for JSON
+  uploadImages(req, res, next);
+};
+router.post('/', authenticate, handleUpload, async (req, res, next) => {
   try {
     const { title, description, price, currency, negotiable, exchange, city, neighborhood, address, lat, lng, categoryId, attributes } = req.body;
     if (!title || !description || !categoryId || !city) {
