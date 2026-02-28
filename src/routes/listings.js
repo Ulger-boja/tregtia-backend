@@ -12,8 +12,14 @@ router.get('/', optionalAuth, async (req, res, next) => {
     const where = { status: 'ACTIVE' };
 
     if (category) {
-      const cat = await prisma.category.findUnique({ where: { slug: category } });
-      if (cat) where.categoryId = cat.id;
+      const cat = await prisma.category.findUnique({
+        where: { slug: category },
+        include: { children: { select: { id: true } } },
+      });
+      if (cat) {
+        const ids = [cat.id, ...cat.children.map(c => c.id)];
+        where.categoryId = { in: ids };
+      }
     }
     if (city) where.city = { equals: city, mode: 'insensitive' };
     if (search) {
