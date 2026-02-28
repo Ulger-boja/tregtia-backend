@@ -54,6 +54,18 @@ router.get('/', optionalAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/listings/my (must be before /:id)
+router.get('/my', authenticate, async (req, res, next) => {
+  try {
+    const listings = await prisma.listing.findMany({
+      where: { userId: req.user.id, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+      include: { category: { select: { slug: true, name_sq: true, name_en: true } } },
+    });
+    res.json({ success: true, data: { listings } });
+  } catch (err) { next(err); }
+});
+
 // GET /api/listings/:id
 router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
@@ -71,18 +83,6 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     await prisma.listing.update({ where: { id: req.params.id }, data: { views: { increment: 1 } } });
 
     res.json({ success: true, data: { listing: { ...listing, views: listing.views + 1 } } });
-  } catch (err) { next(err); }
-});
-
-// GET /api/listings/my
-router.get('/my', authenticate, async (req, res, next) => {
-  try {
-    const listings = await prisma.listing.findMany({
-      where: { userId: req.user.id, status: 'ACTIVE' },
-      orderBy: { createdAt: 'desc' },
-      include: { category: { select: { slug: true, name_sq: true, name_en: true } } },
-    });
-    res.json({ success: true, data: { listings } });
   } catch (err) { next(err); }
 });
 
