@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum ListingStatus {
+  ACTIVE
+  INACTIVE
+  SOLD
+  EXPIRED
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String?
+  name        String
+  phone       String?
+  avatar      String?
+  userType    UserType  @default(INDIVIDUAL)
+  companyName String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  listings    Listing[]
+  favorites   Favorite[]
+  messages    Message[]   @relation("sender")
+  received    Message[]   @relation("receiver")
+}
+
+model Category {
+  id       String     @id @default(uuid())
+  slug     String     @unique
+  name_sq  String
+  name_en  String
+  icon     String?
+  parentId String?
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  listings Listing[]
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+
+  title       String
+  description String
+  price       Decimal?
+  currency    String        @default("ALL")
+  negotiable  Boolean       @default(false)
+  exchange    Boolean       @default(false)
+
+  city        String
+  neighborhood String?
+  address     String?
+  lat         Float?
+  lng         Float?
+
+  images      String[]
+  attributes  Json?         // flexible key-value for category-specific fields
+
+  status      ListingStatus @default(ACTIVE)
+  views       Int           @default(0)
+  sourceUrl   String?       // for scraped listings
+  sourceSite  String?       // merrjep, etc.
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  favorites   Favorite[]
+  messages    Message[]
+
+  @@index([categoryId, status])
+  @@index([city, status])
+  @@index([status, createdAt])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("sender", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("receiver", fields: [receiverId], references: [id])
+  listingId  String?
+  listing    Listing? @relation(fields: [listingId], references: [id])
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId, receiverId])
+}
