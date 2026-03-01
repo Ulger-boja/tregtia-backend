@@ -10,6 +10,7 @@ datasource db {
 enum UserType {
   INDIVIDUAL
   BUSINESS
+  ADMIN
 }
 
 enum ListingStatus {
@@ -35,6 +36,7 @@ model User {
   favorites   Favorite[]
   messages    Message[]   @relation("sender")
   received    Message[]   @relation("receiver")
+  reports     Report[]
 }
 
 model Category {
@@ -84,6 +86,7 @@ model Listing {
 
   favorites   Favorite[]
   messages    Message[]
+  reports     Report[]
 
   @@index([categoryId, status])
   @@index([city, status])
@@ -114,4 +117,18 @@ model Message {
   createdAt  DateTime @default(now())
 
   @@index([senderId, receiverId])
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  reason    String
+  details   String?
+  status    String   @default("pending") // pending, reviewed, dismissed
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
 }

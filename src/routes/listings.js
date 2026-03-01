@@ -148,7 +148,7 @@ router.delete('/:id', authenticate, async (req, res, next) => {
   try {
     const listing = await prisma.listing.findUnique({ where: { id: req.params.id } });
     if (!listing) return res.status(404).json({ success: false, message: 'Not found' });
-    if (listing.userId !== req.user.id) return res.status(403).json({ success: false, message: 'Not authorized' });
+    if (listing.userId !== req.user.id && req.user.userType !== 'ADMIN') return res.status(403).json({ success: false, message: 'Not authorized' });
     await prisma.listing.update({ where: { id: req.params.id }, data: { status: 'INACTIVE' } });
     res.json({ success: true, message: 'Listing deleted' });
   } catch (err) { next(err); }
