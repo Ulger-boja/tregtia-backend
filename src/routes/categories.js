@@ -11,9 +11,9 @@ router.get('/', async (req, res, next) => {
       include: {
         children: {
           orderBy: { sortOrder: 'asc' },
-          include: { _count: { select: { listings: true } } },
+          include: { _count: { select: { listings: { where: { status: 'ACTIVE' } } } } },
         },
-        _count: { select: { listings: true } },
+        _count: { select: { listings: { where: { status: 'ACTIVE' } } } },
       },
     });
 
