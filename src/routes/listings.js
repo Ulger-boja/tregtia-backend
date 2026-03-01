@@ -101,7 +101,7 @@ const handleUpload = (req, res, next) => {
 };
 router.post('/', authenticate, handleUpload, async (req, res, next) => {
   try {
-    const { title, description, price, currency, negotiable, exchange, city, neighborhood, address, lat, lng, categoryId, attributes } = req.body;
+    const { title, description, price, currency, negotiable, exchange, city, neighborhood, address, lat, lng, categoryId, attributes, sourceUrl, sourceSite } = req.body;
     if (!title || !description || !categoryId || !city) {
       return res.status(400).json({ success: false, message: 'Title, description, category, and city are required' });
     }
@@ -133,6 +133,8 @@ router.post('/', authenticate, handleUpload, async (req, res, next) => {
         lng: lng ? parseFloat(lng) : null,
         images,
         attributes: attributes ? (typeof attributes === 'string' ? JSON.parse(attributes) : attributes) : null,
+        sourceUrl: sourceUrl || null,
+        sourceSite: sourceSite || null,
       },
       include: {
         category: true,
