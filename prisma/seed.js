@@ -69,6 +69,25 @@ async function main() {
       }
     }
   }
+  // Create admin account
+  const bcrypt = require('bcryptjs');
+  const adminPass = await bcrypt.hash('TregtiaAdmin2026!', 12);
+  await prisma.user.upsert({
+    where: { email: 'admin@tregtia.al' },
+    create: { name: 'Admin', email: 'admin@tregtia.al', password: adminPass, userType: 'ADMIN' },
+    update: { userType: 'ADMIN' },
+  });
+  console.log('  ✓ Admin account created (admin@tregtia.al)');
+
+  // Create bot account
+  const botPass = await bcrypt.hash('TregtiaBot2026!', 12);
+  await prisma.user.upsert({
+    where: { email: 'bot@tregtia.al' },
+    create: { name: 'Tregtia Bot', email: 'bot@tregtia.al', password: botPass, userType: 'BUSINESS' },
+    update: {},
+  });
+  console.log('  ✓ Bot account created (bot@tregtia.al)');
+
   console.log('Done!');
 }
 
