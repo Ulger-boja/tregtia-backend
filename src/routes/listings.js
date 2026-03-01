@@ -143,6 +143,64 @@ router.post('/', authenticate, handleUpload, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/listings/guest — post as guest (no auth required)
+router.post('/guest', uploadImages, async (req, res, next) => {
+  try {
+    const { title, description, price, currency, negotiable, exchange, city, neighborhood, address, categoryId, attributes, guestName, guestPhone } = req.body;
+    if (!title || !description || !categoryId || !city) {
+      return res.status(400).json({ success: false, message: 'Title, description, category, and city are required' });
+    }
+    if (!guestName || !guestPhone) {
+      return res.status(400).json({ success: false, message: 'Name and phone are required for guest listings' });
+    }
+
+    const images = (req.files || []).map((f) => f.path || f.secure_url || f.url);
+    if (images.length === 0 && req.body.images) {
+      try {
+        const parsed = typeof req.body.images === 'string' ? JSON.parse(req.body.images) : req.body.images;
+        if (Array.isArray(parsed)) images.push(...parsed.filter(u => typeof u === 'string' && u.startsWith('http')));
+      } catch {}
+    }
+
+    // Find or create a guest user by phone
+    let guestUser = await prisma.user.findFirst({ where: { phone: guestPhone, userType: 'INDIVIDUAL' } });
+    if (!guestUser) {
+      guestUser = await prisma.user.create({
+        data: { name: guestName, phone: guestPhone, email: `guest_${Date.now()}@tregtia.al`, userType: 'INDIVIDUAL' },
+      });
+    }
+
+    // Parse attributes and ensure guest contact is included
+    let attrs = attributes ? (typeof attributes === 'string' ? JSON.parse(attributes) : attributes) : {};
+    attrs.guestName = guestName;
+    attrs.guestPhone = guestPhone;
+    attrs.phone = guestPhone;
+
+    const listing = await prisma.listing.create({
+      data: {
+        userId: guestUser.id,
+        categoryId,
+        title,
+        description,
+        price: price ? parseFloat(price) : null,
+        currency: currency || 'ALL',
+        negotiable: negotiable === 'true' || negotiable === true,
+        exchange: exchange === 'true' || exchange === true,
+        city,
+        neighborhood: neighborhood || null,
+        address: address || null,
+        images,
+        attributes: attrs,
+      },
+      include: {
+        category: true,
+        user: { select: { id: true, name: true, avatar: true } },
+      },
+    });
+    res.status(201).json({ success: true, data: { listing } });
+  } catch (err) { next(err); }
+});
+
 // DELETE /api/listings/:id
 router.delete('/:id', authenticate, async (req, res, next) => {
   try {
